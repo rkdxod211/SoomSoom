@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'soomsoom',
     short_name: 'soomsoom',
     description: '캐릭터로 숨어서 솔직하게',
-    start_url: '/feed',
+    start_url: '/',
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#FFFDF8',
