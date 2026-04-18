@@ -99,7 +99,7 @@ async function updateUserCategories(userId: string, supabase: any) {
 
     if (!posts || posts.length < 3) return
 
-    const categories = detectCategories(posts.map((p: any) => p.content))
+    const categories = await detectCategories(posts.map((p: any) => p.content))
     await supabase.from('users').update({ categories }).eq('id', userId)
   } catch {}
 }
