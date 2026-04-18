@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -7,10 +8,16 @@ export async function GET(req: NextRequest) {
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const sort = searchParams.get('sort') ?? 'latest' // latest | reactions
+  const sort = searchParams.get('sort') ?? 'latest'
 
-  const [postsRes, bookmarksRes] = await Promise.all([
-    supabase
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const [postsRes, myBookmarksRes] = await Promise.all([
+    // Use admin to get all bookmarks (not just own) for accurate counts
+    admin
       .from('posts')
       .select(`
         id, user_id, content, created_at,
@@ -29,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   if (postsRes.error) return NextResponse.json({ error: postsRes.error.message }, { status: 500 })
 
-  const myBookmarkedIds = new Set((bookmarksRes.data ?? []).map((b) => b.post_id))
+  const myBookmarkedIds = new Set((myBookmarksRes.data ?? []).map((b) => b.post_id))
 
   let posts = (postsRes.data ?? []).map((post: any) => ({
     id: post.id,
