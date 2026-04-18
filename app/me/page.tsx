@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AppHeader } from '@/components/layout/app-header'
@@ -8,7 +8,9 @@ import { BottomNav } from '@/components/layout/bottom-nav'
 import { CharacterCardPanel } from '@/components/character/character-card-panel'
 import { PostCard } from '@/components/post/post-card'
 import { User, CharacterCard, Post } from '@/types'
-import { CATEGORIES } from '@/lib/character/categories'
+import { CATEGORIES, CATEGORY_KEYWORDS, CategoryId } from '@/lib/character/categories'
+
+type SortMode = 'latest' | 'reactions' | 'category'
 
 export default function MePage() {
   const [profile, setProfile] = useState<User | null>(null)
@@ -20,6 +22,8 @@ export default function MePage() {
   const [generating, setGenerating] = useState(false)
   const [justGenerated, setJustGenerated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sortMode, setSortMode] = useState<SortMode>('latest')
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -38,7 +42,6 @@ export default function MePage() {
       setFollowerCount(follower_count ?? 0)
       setFollowingCount(following_count ?? 0)
 
-      // Auto-recalculate categories if empty and enough posts
       if ((!profile?.categories || profile.categories.length === 0) && post_count >= 3) {
         const catRes = await fetch('/api/users/recalculate-categories', { method: 'POST' })
         if (catRes.ok) {
@@ -47,16 +50,36 @@ export default function MePage() {
         }
       }
 
-      const postsRes = await fetch(`/api/posts?user_id=${user.id}`)
+      const postsRes = await fetch('/api/me/posts?sort=latest')
       if (postsRes.ok) {
         const { posts } = await postsRes.json()
-        setPosts(posts.filter((p: any) => p.user_id === user.id).slice(0, 5))
+        setPosts(posts)
       }
 
       setLoading(false)
     }
     load()
   }, [router])
+
+  async function handleSortChange(mode: SortMode) {
+    setSortMode(mode)
+    setSelectedCategory(null)
+    if (mode === 'category') return
+
+    const res = await fetch(`/api/me/posts?sort=${mode}`)
+    if (res.ok) {
+      const { posts } = await res.json()
+      setPosts(posts)
+    }
+  }
+
+  const displayedPosts = useMemo(() => {
+    if (sortMode !== 'category' || !selectedCategory) return posts
+    const keywords = CATEGORY_KEYWORDS[selectedCategory] ?? []
+    return posts.filter((p) =>
+      keywords.some((kw) => p.content.includes(kw))
+    )
+  }, [posts, sortMode, selectedCategory])
 
   async function handleGenerateCard() {
     setGenerating(true)
@@ -82,6 +105,8 @@ export default function MePage() {
       </div>
     )
   }
+
+  const userCategories = (profile.categories ?? []) as CategoryId[]
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FFFDF8' }}>
@@ -118,10 +143,10 @@ export default function MePage() {
           </div>
         </div>
 
-        {/* Categories */}
-        {(profile.categories ?? []).length > 0 && (
+        {/* Category tags */}
+        {userCategories.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {(profile.categories ?? []).map((cid: string) => {
+            {userCategories.map((cid) => {
               const cat = CATEGORIES.find((c) => c.id === cid)
               return cat ? (
                 <span key={cid} className="px-3 py-1 rounded-full text-xs font-medium bg-[#F0EDFF] text-[#6B647A]">
@@ -132,12 +157,65 @@ export default function MePage() {
           </div>
         )}
 
-        {posts.length > 0 && (
+        {/* Posts section */}
+        {postCount > 0 && (
           <div className="flex flex-col gap-3">
-            <h2 className="text-xs font-semibold text-[#9B8FC4] uppercase tracking-wider">최근 글</h2>
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
+            {/* Sort tabs */}
+            <div className="flex gap-2">
+              {(['latest', 'reactions', 'category'] as SortMode[]).map((mode) => {
+                const label = mode === 'latest' ? '최신순' : mode === 'reactions' ? '반응순' : '카테고리별'
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => handleSortChange(mode)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      sortMode === mode
+                        ? 'bg-[#7C6FCD] text-white'
+                        : 'bg-[#F0EDFF] text-[#6B647A] hover:bg-[#E8E4FF]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Category filter chips (only in category mode) */}
+            {sortMode === 'category' && userCategories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {userCategories.map((cid) => {
+                  const cat = CATEGORIES.find((c) => c.id === cid)
+                  return cat ? (
+                    <button
+                      key={cid}
+                      onClick={() => setSelectedCategory(selectedCategory === cid ? null : cid)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        selectedCategory === cid
+                          ? 'bg-[#CDBBFF] text-[#2F2B3A] scale-105'
+                          : 'bg-[#F0EDFF] text-[#6B647A] hover:bg-[#E8E4FF]'
+                      }`}
+                    >
+                      {cat.emoji} {cat.label}
+                    </button>
+                  ) : null
+                })}
+              </div>
+            )}
+
+            {sortMode === 'category' && userCategories.length === 0 && (
+              <p className="text-xs text-[#B0AABF]">카테고리 태그가 아직 없어요. 글을 3개 이상 쓰면 자동으로 생겨요.</p>
+            )}
+
+            {/* Post list */}
+            {displayedPosts.length > 0 ? (
+              displayedPosts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))
+            ) : (
+              sortMode === 'category' && selectedCategory && (
+                <p className="text-sm text-[#B0AABF] text-center py-4">이 카테고리에 해당하는 글이 없어요</p>
+              )
+            )}
           </div>
         )}
       </main>

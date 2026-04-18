@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -9,8 +10,13 @@ export async function GET(req: NextRequest) {
 
   if (!category) return NextResponse.json({ users: [] })
 
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // Find users whose categories array contains the given category
-  const { data: users, error } = await supabase
+  const { data: users, error } = await admin
     .from('users')
     .select('id, character_type, character_color, character_name, categories')
     .contains('categories', [category])
@@ -21,9 +27,9 @@ export async function GET(req: NextRequest) {
   // Get follower counts and following status
   const enriched = await Promise.all((users ?? []).map(async (u) => {
     const [{ count: follower_count }, { count: following_count }, followCheck] = await Promise.all([
-      supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', u.id),
-      supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', u.id),
-      user ? supabase.from('follows').select('id').eq('follower_id', user.id).eq('following_id', u.id).maybeSingle() : Promise.resolve({ data: null }),
+      admin.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', u.id),
+      admin.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', u.id),
+      user ? admin.from('follows').select('id').eq('follower_id', user.id).eq('following_id', u.id).maybeSingle() : Promise.resolve({ data: null }),
     ])
     return {
       ...u,
