@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     admin
       .from('users')
       .select('id, character_type, character_color, character_name, categories')
-      .contains('categories', [category])
+      .filter('categories', 'cs', JSON.stringify([category]))
       .limit(30),
     admin
       .from('posts')
