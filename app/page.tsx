@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { CharacterAvatar } from '@/components/character/character-avatar'
+import { CharacterCarousel } from '@/components/landing/character-carousel'
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -29,20 +29,13 @@ export default async function LandingPage() {
 
       <div className="max-w-sm w-full flex flex-col items-center gap-10 relative z-10">
 
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-6">
-          {/* Character row */}
-          <div className="flex items-end gap-1.5">
-            <div className="opacity-60 scale-90 origin-bottom"><CharacterAvatar type="rabbit" color="mint" size={44} /></div>
-            <div className="opacity-75 scale-95 origin-bottom"><CharacterAvatar type="cat" color="peach" size={52} /></div>
-            <CharacterAvatar type="ghost" color="lavender" size={72} />
-            <div className="opacity-75 scale-95 origin-bottom"><CharacterAvatar type="bear" color="butter" size={52} /></div>
-            <div className="opacity-60 scale-90 origin-bottom"><CharacterAvatar type="slime" color="sky" size={44} /></div>
-          </div>
+        {/* Character carousel */}
+        <CharacterCarousel />
 
-          {/* soomsoom wordmark */}
+        {/* Logo + tagline */}
+        <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-2">
-            <svg width="32" height="32" viewBox="0 0 64 64" fill="none">
+            <svg width="30" height="30" viewBox="0 0 64 64" fill="none">
               <defs>
                 <linearGradient id="g" x1="32" y1="14" x2="32" y2="56" gradientUnits="userSpaceOnUse">
                   <stop offset="0%" stopColor="#D8C4FF" />
@@ -56,34 +49,9 @@ export default async function LandingPage() {
             </svg>
             <span className="text-3xl font-black text-[#2F2B3A] tracking-tight">soomsoom</span>
           </div>
-        </div>
-
-        {/* Tagline */}
-        <div className="text-center flex flex-col gap-2">
-          <p className="text-lg font-semibold text-[#2F2B3A] leading-snug">
-            정체는 숨기고<br />캐릭터로만 솔직하게
+          <p className="text-base text-[#6B647A] text-center">
+            이름 말고, 무드로 남는 곳
           </p>
-          <p className="text-sm text-[#9B8FC4]">
-            랜덤 캐릭터로 짧은 글을 올리는<br />익명 캐릭터 SNS
-          </p>
-        </div>
-
-        {/* Features */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          {[
-            { icon: '🎲', text: '랜덤 캐릭터' },
-            { icon: '🔒', text: '익명 보장' },
-            { icon: '✨', text: 'AI 카드 분석' },
-            { icon: '🏷️', text: '태그 탐색' },
-          ].map((f) => (
-            <span
-              key={f.text}
-              className="px-3.5 py-1.5 rounded-full text-xs font-medium"
-              style={{ background: 'rgba(124,111,205,0.1)', color: '#7C6FCD' }}
-            >
-              {f.icon} {f.text}
-            </span>
-          ))}
         </div>
 
         {/* CTA */}
@@ -96,7 +64,7 @@ export default async function LandingPage() {
             캐릭터로 시작하기
           </Link>
           <p className="text-xs text-center text-[#B0AABF]">
-            가입하면 랜덤 캐릭터 하나가 생겨요 🎲
+            가입하면 랜덤 캐릭터 하나가 생겨요
           </p>
         </div>
       </div>
