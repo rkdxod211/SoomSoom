@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef, useEffect } from 'react'
 import { CharacterAvatar } from '@/components/character/character-avatar'
 import { CharacterType, CharacterColor } from '@/types'
 
@@ -12,54 +13,89 @@ const CHARS: { type: CharacterType; color: CharacterColor }[] = [
   { type: 'robot', color: 'gray' },
 ]
 
-const SLOT = 84
+const SLOT = 108
 const n = CHARS.length
-const DURATION = n * 1200 // ms per full loop
+const LOOP = n * SLOT
+const SPEED = 55       // px/s
+const VIEWPORT = SLOT * 5
+const CENTER = VIEWPORT / 2
+const SCALE_DIST = SLOT * 1.4
+
+function slotStyle(x: number) {
+  const dist = Math.abs(x + SLOT / 2 - CENTER)
+  const t = Math.max(0, 1 - dist / SCALE_DIST)
+  return { scale: 0.55 + 0.45 * t, opacity: 0.28 + 0.72 * t }
+}
 
 export function CharacterCarousel() {
-  const chars = [...CHARS, ...CHARS]
+  const refs = useRef<(HTMLDivElement | null)[]>([])
+  const offsetRef = useRef(0)
+  const lastTRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    let raf: number
+
+    const tick = (t: number) => {
+      if (lastTRef.current != null) {
+        offsetRef.current += SPEED * (t - lastTRef.current) / 1000
+        if (offsetRef.current >= LOOP) offsetRef.current -= LOOP
+      }
+      lastTRef.current = t
+
+      const off = offsetRef.current
+      for (let i = 0; i < n; i++) {
+        const el = refs.current[i]
+        if (!el) continue
+        let x = i * SLOT - off
+        if (x < -SLOT) x += LOOP
+        const { scale, opacity } = slotStyle(x)
+        el.style.transform = `translateX(${x}px) scale(${scale})`
+        el.style.opacity = String(opacity)
+      }
+
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   return (
     <div
-      className="overflow-hidden relative"
       style={{
-        width: SLOT * 5,
+        width: VIEWPORT,
         height: 108,
-        maskImage: 'linear-gradient(to right, transparent, black 18%, black 82%, transparent)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent, black 18%, black 82%, transparent)',
+        overflow: 'hidden',
+        position: 'relative',
+        maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
       }}
     >
-      <style>{`
-        @keyframes carousel-scroll {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-${n * SLOT}px); }
-        }
-      `}</style>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          width: SLOT * chars.length,
-          height: 108,
-          animation: `carousel-scroll ${DURATION}ms linear infinite`,
-        }}
-      >
-        {chars.map((char, i) => (
+      {CHARS.map((char, i) => {
+        const initX = i * SLOT
+        const { scale, opacity } = slotStyle(initX)
+        return (
           <div
             key={i}
+            ref={el => { refs.current[i] = el }}
             style={{
+              position: 'absolute',
+              left: 0,
               width: SLOT,
               height: 108,
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'center',
               paddingBottom: 4,
+              transformOrigin: 'bottom center',
+              transform: `translateX(${initX}px) scale(${scale})`,
+              opacity,
             }}
           >
             <CharacterAvatar type={char.type} color={char.color} size={80} />
           </div>
-        ))}
-      </div>
+        )
+      })}
     </div>
   )
 }
