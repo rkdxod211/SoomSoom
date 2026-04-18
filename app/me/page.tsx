@@ -38,6 +38,15 @@ export default function MePage() {
       setFollowerCount(follower_count ?? 0)
       setFollowingCount(following_count ?? 0)
 
+      // Auto-recalculate categories if empty and enough posts
+      if ((!profile?.categories || profile.categories.length === 0) && post_count >= 3) {
+        const catRes = await fetch('/api/users/recalculate-categories', { method: 'POST' })
+        if (catRes.ok) {
+          const { categories } = await catRes.json()
+          setProfile((prev: any) => prev ? { ...prev, categories } : prev)
+        }
+      }
+
       const postsRes = await fetch(`/api/posts?user_id=${user.id}`)
       if (postsRes.ok) {
         const { posts } = await postsRes.json()
