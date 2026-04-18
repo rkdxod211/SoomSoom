@@ -1,28 +1,36 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { CharacterAvatar } from '@/components/character/character-avatar'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [password, setPassword] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.trim() || loading) return
+    if (!email.trim() || !password.trim() || loading) return
     setLoading(true)
+    setError('')
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/onboarding` },
-    })
 
-    setLoading(false)
-    if (!error) setSent(true)
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({ email, password })
+      if (error) { setError(error.message); setLoading(false); return }
+      router.push('/onboarding')
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) { setError('이메일 또는 비밀번호가 틀렸어요'); setLoading(false); return }
+      router.push('/feed')
+    }
   }
 
   return (
@@ -31,34 +39,44 @@ export default function LoginPage() {
         <CharacterAvatar type="ghost" color="lavender" size={80} />
 
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-[#2F2B3A]">숨숨 시작하기</h1>
-          <p className="text-sm text-[#6B647A] mt-1">이메일로 로그인 링크를 받아요</p>
+          <h1 className="text-2xl font-bold text-[#2F2B3A]">
+            {isSignUp ? '숨숨 시작하기' : '다시 왔어요'}
+          </h1>
+          <p className="text-sm text-[#6B647A] mt-1">
+            {isSignUp ? '가입하면 랜덤 캐릭터가 생겨요' : '캐릭터로 로그인해요'}
+          </p>
         </div>
 
-        {sent ? (
-          <div className="w-full bg-[#F0EDFF] rounded-3xl p-6 text-center">
-            <p className="text-sm font-semibold text-[#2F2B3A]">링크를 보냈어요 ✨</p>
-            <p className="text-xs text-[#6B647A] mt-1">{email}을 확인해봐</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="이메일 주소"
-              required
-              className="w-full rounded-2xl border border-[#E8E4FF] bg-white px-4 py-3 text-sm text-[#2F2B3A] placeholder:text-[#B0AABF] focus:outline-none focus:ring-2 focus:ring-[#CDBBFF]"
-            />
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? '보내는 중...' : '로그인 링크 받기'}
-            </Button>
-          </form>
-        )}
+        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="이메일"
+            required
+            className="w-full rounded-2xl border border-[#E8E4FF] bg-white px-4 py-3 text-sm text-[#2F2B3A] placeholder:text-[#B0AABF] focus:outline-none focus:ring-2 focus:ring-[#CDBBFF]"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호"
+            required
+            minLength={6}
+            className="w-full rounded-2xl border border-[#E8E4FF] bg-white px-4 py-3 text-sm text-[#2F2B3A] placeholder:text-[#B0AABF] focus:outline-none focus:ring-2 focus:ring-[#CDBBFF]"
+          />
+          {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+          <Button type="submit" size="lg" className="w-full" disabled={loading}>
+            {loading ? '잠깐만...' : isSignUp ? '가입하기' : '로그인'}
+          </Button>
+        </form>
 
-        <p className="text-xs text-[#B0AABF] text-center">
-          비밀번호 없이 이메일 링크 하나로 로그인해요
-        </p>
+        <button
+          onClick={() => { setIsSignUp(!isSignUp); setError('') }}
+          className="text-sm text-[#9B8FC4] underline underline-offset-2 cursor-pointer"
+        >
+          {isSignUp ? '이미 계정이 있어요' : '처음이에요, 가입할게요'}
+        </button>
       </div>
     </main>
   )
