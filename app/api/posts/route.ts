@@ -80,10 +80,26 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Update user categories after post
+  // Async: classify post category + update user categories
+  classifyPostCategory(data.id, content.trim())
   updateUserCategories(user.id, supabase)
 
   return NextResponse.json(data, { status: 201 })
+}
+
+async function classifyPostCategory(postId: string, content: string) {
+  try {
+    const { detectPostCategory } = await import('@/lib/character/categories')
+    const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+    const category = await detectPostCategory(content)
+    if (category) {
+      const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      await admin.from('posts').update({ category }).eq('id', postId)
+    }
+  } catch {}
 }
 
 async function updateUserCategories(userId: string, supabase: any) {
