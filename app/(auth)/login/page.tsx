@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [verifyPending, setVerifyPending] = useState(false)
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
@@ -23,14 +24,51 @@ export default function LoginPage() {
     const supabase = createClient()
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/onboarding`,
+        },
+      })
       if (error) { setError(error.message); setLoading(false); return }
-      router.push('/onboarding')
+      setVerifyPending(true)
+      setLoading(false)
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setError('이메일 또는 비밀번호가 틀렸어요'); setLoading(false); return }
+      if (error) {
+        setError('이메일 또는 비밀번호가 틀렸어요')
+        setLoading(false)
+        return
+      }
       router.push('/feed')
     }
+  }
+
+  if (verifyPending) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#FFFDF8' }}>
+        <div className="max-w-sm w-full flex flex-col items-center gap-6 text-center">
+          <CharacterAvatar type="rabbit" color="mint" size={80} />
+          <div>
+            <h2 className="text-xl font-bold text-[#2F2B3A]">이메일을 확인해봐요 ✉️</h2>
+            <p className="text-sm text-[#6B647A] mt-2">
+              <strong>{email}</strong>로 확인 링크를 보냈어요.<br />
+              링크를 누르면 캐릭터가 생겨요!
+            </p>
+          </div>
+          <p className="text-xs text-[#B0AABF]">
+            이미 확인했으면 아래에서 로그인해봐요
+          </p>
+          <button
+            onClick={() => { setVerifyPending(false); setIsSignUp(false) }}
+            className="text-sm text-[#9B8FC4] underline underline-offset-2 cursor-pointer"
+          >
+            로그인하러 가기
+          </button>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -60,7 +98,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호"
+            placeholder="비밀번호 (6자 이상)"
             required
             minLength={6}
             className="w-full rounded-2xl border border-[#E8E4FF] bg-white px-4 py-3 text-sm text-[#2F2B3A] placeholder:text-[#B0AABF] focus:outline-none focus:ring-2 focus:ring-[#CDBBFF]"
