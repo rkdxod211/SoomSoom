@@ -1,18 +1,17 @@
 import Link from 'next/link'
-import { Post, ReactionType } from '@/types'
+import { Post } from '@/types'
 import { Card } from '@/components/ui/card'
 import { CharacterBadge } from '@/components/character/character-badge'
-import { PostReactions } from './post-reactions'
+import { BookmarkButton } from './bookmark-button'
 import { relativeTime } from '@/lib/utils/date'
 import { MessageCircle } from 'lucide-react'
 
 interface PostCardProps {
   post: Post
-  myReaction?: ReactionType | null
   showReplies?: boolean
 }
 
-export function PostCard({ post, myReaction, showReplies = true }: PostCardProps) {
+export function PostCard({ post, showReplies = true }: PostCardProps) {
   if (!post.author) return null
 
   return (
@@ -34,17 +33,15 @@ export function PostCard({ post, myReaction, showReplies = true }: PostCardProps
       </Link>
 
       <div className="flex items-center justify-between">
-        <PostReactions
-          postId={post.id}
-          reactions={post.reactions ?? []}
-          myReaction={myReaction}
-        />
         {showReplies && (
           <Link href={`/post/${post.id}`} className="flex items-center gap-1 text-xs text-[#B0AABF] hover:text-[#9B8FC4]">
             <MessageCircle size={13} />
             <span>{post.reply_count ?? 0}</span>
           </Link>
         )}
+        <div className="ml-auto">
+          <BookmarkButton postId={post.id} initialBookmarked={post.is_bookmarked ?? false} />
+        </div>
       </div>
     </Card>
   )

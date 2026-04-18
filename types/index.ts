@@ -1,3 +1,5 @@
+import { CategoryId } from '@/lib/character/categories'
+
 export type CharacterType = 'rabbit' | 'ghost' | 'cat' | 'slime' | 'robot' | 'bear'
 export type CharacterColor = 'lavender' | 'mint' | 'peach' | 'butter' | 'sky' | 'gray'
 
@@ -9,6 +11,7 @@ export interface User {
   character_seed: string
   character_name: string
   onboarded: boolean
+  categories: CategoryId[]
 }
 
 export interface Post {
@@ -18,24 +21,8 @@ export interface Post {
   created_at: string
   deleted_at: string | null
   author?: User
-  reactions?: ReactionSummary[]
   reply_count?: number
-}
-
-export interface Reaction {
-  id: string
-  post_id: string
-  user_id: string
-  reaction_type: ReactionType
-  created_at: string
-}
-
-export type ReactionType = 'laugh' | 'empathy' | 'what' | 'omg' | 'cute'
-
-export interface ReactionSummary {
-  reaction_type: ReactionType
-  count: number
-  reacted_by_me: boolean
+  is_bookmarked?: boolean
 }
 
 export interface Reply {
@@ -60,12 +47,15 @@ export interface CharacterCard {
   updated_at: string
 }
 
-export const REACTION_EMOJI: Record<ReactionType, { emoji: string; label: string }> = {
-  laugh: { emoji: 'ㅋㅋ', label: '웃김' },
-  empathy: { emoji: '공감', label: '공감' },
-  what: { emoji: '뭐임', label: '뭐임' },
-  omg: { emoji: '헐', label: '헐' },
-  cute: { emoji: '귀여움', label: '귀여움' },
+export interface Follow {
+  follower_id: string
+  following_id: string
+}
+
+export interface UserProfile extends User {
+  follower_count: number
+  following_count: number
+  is_following: boolean
 }
 
 export const CHARACTER_TYPES: CharacterType[] = ['rabbit', 'ghost', 'cat', 'slime', 'robot', 'bear']

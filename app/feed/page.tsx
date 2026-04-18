@@ -45,11 +45,7 @@ export default async function FeedPage() {
           </div>
         ) : (
           posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              myReaction={post.my_reaction as any}
-            />
+            <PostCard key={post.id} post={post} />
           ))
         )}
       </main>

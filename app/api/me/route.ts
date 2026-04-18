@@ -9,23 +9,25 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const [
+    { data: profile },
+    { data: card },
+    { count: post_count },
+    { count: follower_count },
+    { count: following_count },
+  ] = await Promise.all([
+    supabase.from('users').select('*').eq('id', user.id).single(),
+    supabase.from('character_cards').select('*').eq('user_id', user.id).single(),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('deleted_at', null),
+    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
+    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', user.id),
+  ])
 
-  const { data: card } = await supabase
-    .from('character_cards')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
-
-  const { count } = await supabase
-    .from('posts')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .is('deleted_at', null)
-
-  return NextResponse.json({ profile, card, post_count: count ?? 0 })
+  return NextResponse.json({
+    profile,
+    card,
+    post_count: post_count ?? 0,
+    follower_count: follower_count ?? 0,
+    following_count: following_count ?? 0,
+  })
 }

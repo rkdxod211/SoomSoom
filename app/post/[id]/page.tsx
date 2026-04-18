@@ -45,7 +45,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 pt-4 pb-32 flex flex-col gap-6">
         {/* Original post */}
-        <PostCard post={post} myReaction={postData.my_reaction} showReplies={false} />
+        <PostCard post={post} showReplies={false} />
 
         {/* Replies */}
         <div className="flex flex-col gap-3">

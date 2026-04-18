@@ -8,12 +8,15 @@ import { BottomNav } from '@/components/layout/bottom-nav'
 import { CharacterCardPanel } from '@/components/character/character-card-panel'
 import { PostCard } from '@/components/post/post-card'
 import { User, CharacterCard, Post } from '@/types'
+import { CATEGORIES } from '@/lib/character/categories'
 
 export default function MePage() {
   const [profile, setProfile] = useState<User | null>(null)
   const [card, setCard] = useState<CharacterCard | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
   const [postCount, setPostCount] = useState(0)
+  const [followerCount, setFollowerCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
   const [generating, setGenerating] = useState(false)
   const [justGenerated, setJustGenerated] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -28,10 +31,12 @@ export default function MePage() {
 
       const meRes = await fetch('/api/me')
       if (!meRes.ok) { router.push('/login'); return }
-      const { profile, card, post_count } = await meRes.json()
+      const { profile, card, post_count, follower_count, following_count } = await meRes.json()
       setProfile(profile)
       setCard(card)
       setPostCount(post_count)
+      setFollowerCount(follower_count ?? 0)
+      setFollowingCount(following_count ?? 0)
 
       const postsRes = await fetch(`/api/posts?user_id=${user.id}`)
       if (postsRes.ok) {
@@ -87,6 +92,36 @@ export default function MePage() {
             justGenerated={justGenerated}
           />
         </div>
+
+        {/* Stats */}
+        <div className="flex gap-4 text-sm text-center">
+          <div className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <p className="font-bold text-[#2F2B3A]">{followerCount}</p>
+            <p className="text-xs text-[#B0AABF]">팔로워</p>
+          </div>
+          <div className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <p className="font-bold text-[#2F2B3A]">{followingCount}</p>
+            <p className="text-xs text-[#B0AABF]">팔로잉</p>
+          </div>
+          <div className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <p className="font-bold text-[#2F2B3A]">{postCount}</p>
+            <p className="text-xs text-[#B0AABF]">글</p>
+          </div>
+        </div>
+
+        {/* Categories */}
+        {(profile.categories ?? []).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {(profile.categories ?? []).map((cid: string) => {
+              const cat = CATEGORIES.find((c) => c.id === cid)
+              return cat ? (
+                <span key={cid} className="px-3 py-1 rounded-full text-xs font-medium bg-[#F0EDFF] text-[#6B647A]">
+                  {cat.emoji} {cat.label}
+                </span>
+              ) : null
+            })}
+          </div>
+        )}
 
         {posts.length > 0 && (
           <div className="flex flex-col gap-3">
