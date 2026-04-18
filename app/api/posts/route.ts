@@ -8,14 +8,16 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const limit = 30
 
-  // Get following list for current user
+  // Get following list + user categories in parallel
   let followingIds: string[] = []
+  let userCategories: string[] = []
   if (user) {
-    const { data: follows } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', user.id)
-    followingIds = (follows ?? []).map((f) => f.following_id)
+    const [followsRes, profileRes] = await Promise.all([
+      supabase.from('follows').select('following_id').eq('follower_id', user.id),
+      supabase.from('users').select('categories').eq('id', user.id).single(),
+    ])
+    followingIds = (followsRes.data ?? []).map((f) => f.following_id)
+    userCategories = profileRes.data?.categories ?? []
   }
 
   // Get bookmarked post ids
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase
     .from('posts')
     .select(`
-      id, user_id, content, created_at, deleted_at,
+      id, user_id, content, created_at, deleted_at, category,
       author:users!user_id(id, character_type, character_color, character_name, categories),
       replies(id)
     `)
@@ -41,10 +43,23 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  const now = Date.now()
+
   const posts = (data ?? []).map((post: any) => {
     const replyCount = (post.replies ?? []).length
     const isFollowing = followingIds.includes(post.user_id)
-    const score = (isFollowing ? 1000 : 0) + replyCount * 2
+    const isCategoryMatch = post.category && userCategories.includes(post.category)
+
+    // Recency bonus: decays over 48 hours
+    const hoursAgo = (now - new Date(post.created_at).getTime()) / 3_600_000
+    const recencyBonus = Math.max(0, Math.round(150 - hoursAgo * 3))
+
+    const score =
+      (isFollowing ? 1000 : 0) +
+      (isCategoryMatch ? 400 : 0) +
+      replyCount * 10 +
+      recencyBonus
+
     return {
       id: post.id,
       user_id: post.user_id,
