@@ -7,10 +7,14 @@ import { AppHeader } from '@/components/layout/app-header'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { CharacterCardPanel } from '@/components/character/character-card-panel'
 import { PostCard } from '@/components/post/post-card'
-import { User, CharacterCard, Post } from '@/types'
+import { CharacterAvatar } from '@/components/character/character-avatar'
+import { User, CharacterCard, Post, CharacterType, CharacterColor } from '@/types'
 import { CATEGORIES, CATEGORY_KEYWORDS, CategoryId } from '@/lib/character/categories'
+import { X } from 'lucide-react'
+import Link from 'next/link'
 
 type SortMode = 'latest' | 'reactions' | 'category'
+type FollowModal = { type: 'followers' | 'following'; users: any[] } | null
 
 export default function MePage() {
   const [profile, setProfile] = useState<User | null>(null)
@@ -24,8 +28,17 @@ export default function MePage() {
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState<SortMode>('latest')
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null)
+  const [followModal, setFollowModal] = useState<FollowModal>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  async function openFollowModal(type: 'followers' | 'following') {
+    const res = await fetch(`/api/me/follows?type=${type}`)
+    if (res.ok) {
+      const { users } = await res.json()
+      setFollowModal({ type, users })
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -130,14 +143,20 @@ export default function MePage() {
 
         {/* Stats */}
         <div className="flex gap-4 text-sm text-center">
-          <div className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <button
+            onClick={() => openFollowModal('followers')}
+            className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-[#F5F3FF] transition-colors"
+          >
             <p className="font-bold text-[#2F2B3A]">{followerCount}</p>
             <p className="text-xs text-[#B0AABF]">팔로워</p>
-          </div>
-          <div className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          </button>
+          <button
+            onClick={() => openFollowModal('following')}
+            className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:bg-[#F5F3FF] transition-colors"
+          >
             <p className="font-bold text-[#2F2B3A]">{followingCount}</p>
             <p className="text-xs text-[#B0AABF]">팔로잉</p>
-          </div>
+          </button>
           <div className="flex-1 bg-white rounded-2xl py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             <p className="font-bold text-[#2F2B3A]">{postCount}</p>
             <p className="text-xs text-[#B0AABF]">글</p>
@@ -208,6 +227,52 @@ export default function MePage() {
       </main>
 
       <BottomNav />
+
+      {/* Followers / Following modal */}
+      {followModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
+          onClick={() => setFollowModal(null)}
+        >
+          <div
+            className="bg-white w-full max-w-md rounded-t-3xl p-6 flex flex-col gap-4 max-h-[70vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-[#2F2B3A]">
+                {followModal.type === 'followers' ? '팔로워' : '팔로잉'}
+              </h2>
+              <button onClick={() => setFollowModal(null)}>
+                <X size={20} className="text-[#B0AABF]" />
+              </button>
+            </div>
+
+            {followModal.users.length === 0 ? (
+              <p className="text-sm text-[#B0AABF] text-center py-8">
+                {followModal.type === 'followers' ? '아직 팔로워가 없어요' : '팔로잉한 캐릭터가 없어요'}
+              </p>
+            ) : (
+              <div className="overflow-y-auto flex flex-col gap-3">
+                {followModal.users.map((u) => (
+                  <Link
+                    key={u.id}
+                    href={`/character/${u.id}`}
+                    onClick={() => setFollowModal(null)}
+                    className="flex items-center gap-3 py-1"
+                  >
+                    <CharacterAvatar
+                      type={u.character_type as CharacterType}
+                      color={u.character_color as CharacterColor}
+                      size={36}
+                    />
+                    <span className="text-sm font-medium text-[#2F2B3A]">{u.character_name}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
