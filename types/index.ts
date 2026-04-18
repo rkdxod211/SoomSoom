@@ -22,6 +22,7 @@ export interface Post {
   deleted_at: string | null
   author?: User
   reply_count?: number
+  bookmark_count?: number
   is_bookmarked?: boolean
 }
 
