@@ -26,7 +26,11 @@ export async function POST() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-  await admin.from('users').update({ categories }).eq('id', user.id)
+  const { error: updateError } = await admin.from('users').update({ categories }).eq('id', user.id)
+  if (updateError) {
+    console.error('categories update failed:', updateError)
+    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  }
 
   return NextResponse.json({ categories })
 }

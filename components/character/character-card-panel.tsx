@@ -5,6 +5,7 @@ import { CharacterAvatar } from './character-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { CATEGORIES } from '@/lib/character/categories'
 
 interface CharacterCardPanelProps {
   type: CharacterType
@@ -12,6 +13,7 @@ interface CharacterCardPanelProps {
   name: string
   card: CharacterCard | null
   postCount: number
+  categories?: string[]
   isMe?: boolean
   onGenerateCard?: () => void
   generating?: boolean
@@ -24,6 +26,7 @@ export function CharacterCardPanel({
   name,
   card,
   postCount,
+  categories = [],
   isMe = false,
   onGenerateCard,
   generating = false,
@@ -42,6 +45,22 @@ export function CharacterCardPanel({
         <CharacterAvatar type={type} color={color} size={generating ? 80 : 96} className={generating ? 'animate-pulse' : ''} />
         <h2 className="text-2xl font-bold text-[#2F2B3A]">{name}</h2>
         <p className="text-sm text-[#6B647A]">글 {postCount}개</p>
+        {categories.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5 mt-1">
+            {categories.map((cid) => {
+              const cat = CATEGORIES.find((c) => c.id === cid)
+              return cat ? (
+                <span
+                  key={cid}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium"
+                  style={{ backgroundColor: `${mainColor}60`, color: '#2F2B3A' }}
+                >
+                  {cat.emoji} {cat.label}
+                </span>
+              ) : null
+            })}
+          </div>
+        )}
         {generating && (
           <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl"
             style={{ background: `${mainColor}90`, backdropFilter: 'blur(2px)' }}>

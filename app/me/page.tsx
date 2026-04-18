@@ -44,9 +44,9 @@ export default function MePage() {
 
       if ((!profile?.categories || profile.categories.length === 0) && post_count >= 3) {
         const catRes = await fetch('/api/users/recalculate-categories', { method: 'POST' })
-        if (catRes.ok) {
-          const { categories } = await catRes.json()
-          setProfile((prev: any) => prev ? { ...prev, categories } : prev)
+        const catData = await catRes.json()
+        if (catRes.ok && catData.categories) {
+          setProfile((prev: any) => prev ? { ...prev, categories: catData.categories } : prev)
         }
       }
 
@@ -120,6 +120,7 @@ export default function MePage() {
             name={profile.character_name}
             card={card}
             postCount={postCount}
+            categories={userCategories}
             isMe
             onGenerateCard={handleGenerateCard}
             generating={generating}
@@ -142,20 +143,6 @@ export default function MePage() {
             <p className="text-xs text-[#B0AABF]">글</p>
           </div>
         </div>
-
-        {/* Category tags */}
-        {userCategories.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {userCategories.map((cid) => {
-              const cat = CATEGORIES.find((c) => c.id === cid)
-              return cat ? (
-                <span key={cid} className="px-3 py-1 rounded-full text-xs font-medium bg-[#F0EDFF] text-[#6B647A]">
-                  {cat.emoji} {cat.label}
-                </span>
-              ) : null
-            })}
-          </div>
-        )}
 
         {/* Posts section */}
         {postCount > 0 && (
